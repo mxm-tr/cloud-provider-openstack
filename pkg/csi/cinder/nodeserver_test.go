@@ -104,8 +104,8 @@ func TestNodePublishVolume(t *testing.T) {
 
 	// mock MountMock
 	mmock := new(mount.MountMock)
-	// ScanForAttach(devicePath string) error
-	mmock.On("ScanForAttach", fakeDevicePath).Return(nil)
+	// GetDevicePath(volumeID string) error
+	mmock.On("GetDevicePath", FakeVolID).Return(FakeDevicePath, nil)
 	// IsLikelyNotMountPointAttach(targetpath string) (bool, error)
 	mmock.On("IsLikelyNotMountPointAttach", fakeTargetPath).Return(true, nil)
 	// FormatAndMount(source string, target string, fstype string, options []string) error

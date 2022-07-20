@@ -36,7 +36,10 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	targetPath := req.GetTargetPath()
 	fsType := req.GetVolumeCapability().GetMount().GetFsType()
-	devicePath := req.GetPublishInfo()["DevicePath"]
+	volumeID := req.GetVolumeId()
+
+	// Do not trust the path provided by cinder, get the real path on node
+	devicePath, err := ns.getDevicePath(volumeID)
 
 	// Get Mount Provider
 	m, err := mount.GetMountProvider()
@@ -50,6 +53,9 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if err != nil {
 		klog.V(3).Infof("Failed to ScanForAttach: %v", err)
 		return nil, err
+	}
+	if devicePath == "" {
+		return nil, status.Error(codes.Internal, "Unable to find Device path for volume")
 	}
 
 	// Verify whether mounted
@@ -163,6 +169,19 @@ func (ns *nodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 			},
 		},
 	}, nil
+}
+
+func (ns *nodeServer) getDevicePath(volumeID string) (string, error) {
+	var devicePath string
+	devicePath, _ = ns.Mount.GetDevicePath(volumeID)
+	if devicePath == "" {
+		// try to get from metadata service
+		devicePath = metadata.GetDevicePath(volumeID)
+	}
+
+
+	return devicePath, nil
+
 }
 
 func getNodeIDMountProvider() (string, error) {

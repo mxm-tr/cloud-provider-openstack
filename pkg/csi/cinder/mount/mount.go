@@ -43,6 +43,7 @@ type IMount interface {
 	IsLikelyNotMountPointDetach(targetpath string) (bool, error)
 	UnmountPath(mountPath string) error
 	GetInstanceID() (string, error)
+	GetDevicePath(volumeID string) (string, error)
 }
 
 type Mount struct {
@@ -79,6 +80,64 @@ func probeVolume() error {
 		return err
 	}
 	return nil
+}
+
+
+// GetDevicePath returns the path of an attached block storage volume, specified by its id.
+func (m *Mount) GetDevicePath(volumeID string) (string, error) {
+	backoff := wait.Backoff{
+		Duration: operationFinishInitDelay,
+		Factor:   operationFinishFactor,
+		Steps:    operationFinishSteps,
+	}
+
+	var devicePath string
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		devicePath = m.getDevicePathBySerialID(volumeID)
+		if devicePath != "" {
+			return true, nil
+		}
+		return false, nil
+	})
+
+	if err == wait.ErrWaitTimeout {
+		return "", fmt.Errorf("Failed to find device for the volumeID: %q within the alloted time", volumeID)
+	} else if devicePath == "" {
+		return "", fmt.Errorf("Device path was empty for volumeID: %q", volumeID)
+	}
+	return devicePath, nil
+}
+
+// GetDevicePathBySerialID returns the path of an attached block storage volume, specified by its id.
+func (m *Mount) getDevicePathBySerialID(volumeID string) string {
+	// Build a list of candidate device paths.
+	// Certain Nova drivers will set the disk serial ID, including the Cinder volume id.
+	candidateDeviceNodes := []string{
+		// KVM
+		fmt.Sprintf("virtio-%s", volumeID[:20]),
+		// KVM virtio-scsi
+		fmt.Sprintf("scsi-0QEMU_QEMU_HARDDISK_%s", volumeID[:20]),
+		// ESXi
+		fmt.Sprintf("wwn-0x%s", strings.Replace(volumeID, "-", "", -1)),
+	}
+
+	files, err := ioutil.ReadDir("/dev/disk/by-id/")
+	if err != nil {
+		klog.V(4).Infof("ReadDir failed with error %v", err)
+	}
+
+	for _, f := range files {
+		for _, c := range candidateDeviceNodes {
+			if c == f.Name() {
+				klog.V(4).Infof("Found disk attached as %q; full devicepath: %s\n",
+					f.Name(), path.Join("/dev/disk/by-id/", f.Name()))
+				return path.Join("/dev/disk/by-id/", f.Name())
+			}
+		}
+	}
+
+	klog.V(4).Infof("Failed to find device for the volumeID: %q by serial ID", volumeID)
+	return ""
 }
 
 // ScanForAttach
