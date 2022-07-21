@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -40,6 +39,7 @@ import (
 	volumes_v2 "github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
 	volumes_v3 "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
+	"github.com/gophercloud/gophercloud/pagination"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"k8s.io/klog"
@@ -635,12 +635,26 @@ func (os *OpenStack) DiskIsAttached(instanceID, volumeID string) (bool, error) {
 	if instanceID == "" {
 		klog.Warningf("calling DiskIsAttached with empty instanceid: %s %s", instanceID, volumeID)
 	}
-	volume, err := os.getVolume(volumeID)
+	foundAttachment := false
+	err := volumeattach.List(os.compute, instanceID).EachPage(func(page pagination.Page) (bool, error) {
+		attachments, err := volumeattach.ExtractVolumeAttachments(page)
+		if err != nil {
+			return false, err
+		}
+		for _, attachment := range attachments {
+			if attachment.VolumeID == volumeID {
+				klog.V(4).Infof("Found volume attachment %s for server %s and volume %s", attachment.ID, attachment.ServerID, volumeID)
+				foundAttachment = true
+				return false, nil
+			}
+		}
+		klog.V(4).Infof("Unable to find volume attachment for server %s and volume %s", instanceID, volumeID)
+		return false, nil
+	})
 	if err != nil {
-		return false, err
+		return foundAttachment, err
 	}
-
-	return instanceID == volume.AttachedServerID, nil
+	return foundAttachment, nil
 }
 
 // DiskIsAttachedByName queries if a volume is attached to a compute instance by name
