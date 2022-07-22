@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -43,6 +44,7 @@ type IMount interface {
 	IsLikelyNotMountPointDetach(targetpath string) (bool, error)
 	UnmountPath(mountPath string) error
 	GetInstanceID() (string, error)
+	Mount(source string, target string, fstype string, options []string) error
 	GetDevicePath(volumeID string) (string, error)
 }
 
@@ -81,7 +83,6 @@ func probeVolume() error {
 	}
 	return nil
 }
-
 
 // GetDevicePath returns the path of an attached block storage volume, specified by its id.
 func (m *Mount) GetDevicePath(volumeID string) (string, error) {
@@ -153,7 +154,7 @@ func (m *Mount) ScanForAttach(devicePath string) error {
 			klog.V(5).Infof("Checking Cinder disk %q is attached.", devicePath)
 			probeVolume()
 
-			exists, err := util.PathExists(devicePath)
+			exists, err := mount.PathExists(devicePath)
 			if exists && err == nil {
 				return nil
 			} else {
@@ -169,6 +170,11 @@ func (m *Mount) ScanForAttach(devicePath string) error {
 func (m *Mount) FormatAndMount(source string, target string, fstype string, options []string) error {
 	diskMounter := &mount.SafeFormatAndMount{Interface: mount.New(""), Exec: mount.NewOsExec()}
 	return diskMounter.FormatAndMount(source, target, fstype, options)
+}
+
+func (m *Mount) Mount(source string, target string, fstype string, options []string) error {
+	diskMounter := &mount.SafeFormatAndMount{Interface: mount.New(""), Exec: mount.NewOsExec()}
+	return diskMounter.Mount(source, target, fstype, options)
 }
 
 // IsLikelyNotMountPointAttach

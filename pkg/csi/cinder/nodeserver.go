@@ -118,6 +118,57 @@ func (ns *nodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstag
 }
 
 func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
+	klog.V(4).Infof("NodeStageVolume: called with args %+v", *req)
+
+	stagingTarget := req.GetStagingTargetPath()
+	volumeCapability := req.GetVolumeCapability()
+	volumeID := req.GetVolumeId()
+
+	if len(stagingTarget) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Staging target not provided")
+	}
+	if volumeCapability == nil {
+		return nil, status.Error(codes.InvalidArgument, "NodeStageVolume Volume Capability must be provided")
+	}
+	// Do not trust the path provided by cinder, get the real path on node
+	devicePath, err := ns.getDevicePath(volumeID)
+	if err != nil {
+		klog.V(3).Infof("Failed to GetDevicePath: %v", err)
+		return nil, err
+	}
+	if devicePath == "" {
+		return nil, status.Error(codes.Internal, "Unable to find Device path for volume")
+	}
+
+	m := ns.Mount
+	// Verify whether mounted
+	notMnt, err := m.IsLikelyNotMountPointAttach(stagingTarget)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Volume Mount
+	if notMnt {
+		// set default fstype is ext4
+		fsType := "ext4"
+		var options []string
+		if mnt := volumeCapability.GetMount(); mnt != nil {
+			if mnt.FsType != "" {
+				fsType = mnt.FsType
+			}
+			mountFlags := mnt.GetMountFlags()
+			options = append(options, mountFlags...)
+		} else if blk := volumeCapability.GetBlock(); blk != nil {
+			// TODO(#341): Block volume support
+			return nil, status.Errorf(codes.Unimplemented, "Block volume support is not yet implemented")
+		}
+		// Mount
+		err = m.FormatAndMount(devicePath, stagingTarget, fsType, options)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	}
+
 	return &csi.NodeStageVolumeResponse{}, nil
 }
 
@@ -178,7 +229,6 @@ func (ns *nodeServer) getDevicePath(volumeID string) (string, error) {
 		// try to get from metadata service
 		devicePath = metadata.GetDevicePath(volumeID)
 	}
-
 
 	return devicePath, nil
 
