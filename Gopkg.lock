@@ -1190,7 +1190,7 @@
   version = "kubernetes-1.13.0"
 
 [[projects]]
-  digest = "1:3593badfe83a79af5c44d5b32c46b5f3b88fddecd6ebb5d26dda1d8e63b8ae6e"
+  digest = "1:2eff362f691de5a484a7b63a8e3a0d7c634ab9d1822c601133983a7f60a6e155"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -1365,6 +1365,7 @@
     "util/homedir",
     "util/integer",
     "util/retry",
+    "util/testing",
     "util/workqueue",
   ]
   pruneopts = "UT"
@@ -1378,46 +1379,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "4b2bd82dd2b6033ef857975b43a5d9ffce70b9a6"
-
-[[projects]]
-  digest = "1:a8d1f5df469262fa68ac629ca9161580e366f68bbc491288df492b6c5f42d950"
-  name = "k8s.io/cloud-provider-openstack"
-  packages = [
-    "pkg/api/v1/service",
-    "pkg/apis/core/v1/helper",
-    "pkg/cloudprovider/providers/openstack",
-    "pkg/csi/cinder",
-    "pkg/csi/cinder/mount",
-    "pkg/csi/cinder/openstack",
-    "pkg/flexvolume",
-    "pkg/flexvolume/cinder/drivers",
-    "pkg/flexvolume/knownflags",
-    "pkg/flexvolume/metadata",
-    "pkg/flexvolume/node",
-    "pkg/flexvolume/uuid",
-    "pkg/identity/keystone",
-    "pkg/ingress/cmd",
-    "pkg/ingress/config",
-    "pkg/ingress/controller",
-    "pkg/ingress/controller/openstack",
-    "pkg/kms/barbican",
-    "pkg/kms/encryption/aescbc",
-    "pkg/kms/server",
-    "pkg/share/manila",
-    "pkg/share/manila/sharebackends",
-    "pkg/share/manila/shareoptions",
-    "pkg/util/file",
-    "pkg/util/io",
-    "pkg/util/mount",
-    "pkg/util/net/sets",
-    "pkg/volume",
-    "pkg/volume/cinder/provisioner",
-    "pkg/volume/cinder/volumeservice",
-    "pkg/volume/util",
-  ]
-  pruneopts = "UT"
-  revision = "256208d29853cfa7da3887e57f736fa6c32fa822"
-  version = "1.13.1"
 
 [[projects]]
   branch = "master"
@@ -1463,7 +1424,7 @@
   revision = "c59034cc13d587f5ef4e85ca0ade0c1866ae8e1d"
 
 [[projects]]
-  digest = "1:286afba77a8e4920b4e41bd7b19bb12528f5e9d5ebd9a7c6484f824ca354f3d0"
+  digest = "1:ddcaa41c8c49c52f0be7c06fd859685e9df4e8e4a51c0c03f5ccd93cca973dfa"
   name = "k8s.io/kubernetes"
   packages = [
     "cmd/cloud-controller-manager/app",
@@ -1517,6 +1478,7 @@
     "pkg/util/goroutinemap/exponentialbackoff",
     "pkg/util/hash",
     "pkg/util/io",
+    "pkg/util/keymutex",
     "pkg/util/metrics",
     "pkg/util/mount",
     "pkg/util/net/sets",
@@ -1530,6 +1492,7 @@
     "pkg/version/prometheus",
     "pkg/version/verflag",
     "pkg/volume",
+    "pkg/volume/testing",
     "pkg/volume/util",
     "pkg/volume/util/fs",
     "pkg/volume/util/recyclerclient",
@@ -1561,10 +1524,14 @@
     "github.com/gophercloud/gophercloud/openstack",
     "github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions",
     "github.com/gophercloud/gophercloud/openstack/blockstorage/noauth",
+    "github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes",
     "github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes",
     "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/snapshots",
     "github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes",
+    "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/attachinterfaces",
+    "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones",
     "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach",
+    "github.com/gophercloud/gophercloud/openstack/compute/v2/servers",
     "github.com/gophercloud/gophercloud/openstack/identity/v3/extensions/trusts",
     "github.com/gophercloud/gophercloud/openstack/identity/v3/tokens",
     "github.com/gophercloud/gophercloud/openstack/keymanager/v1/secrets",
@@ -1572,7 +1539,18 @@
     "github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/listeners",
     "github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/loadbalancers",
     "github.com/gophercloud/gophercloud/openstack/loadbalancer/v2/pools",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/external",
     "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/listeners",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/networks",
+    "github.com/gophercloud/gophercloud/openstack/networking/v2/ports",
     "github.com/gophercloud/gophercloud/openstack/sharedfilesystems/apiversions",
     "github.com/gophercloud/gophercloud/openstack/sharedfilesystems/v2/shares",
     "github.com/gophercloud/gophercloud/openstack/utils",
@@ -1583,9 +1561,11 @@
     "github.com/kubernetes-csi/drivers/pkg/csi-common",
     "github.com/kubernetes-incubator/external-storage/lib/controller",
     "github.com/mitchellh/go-homedir",
+    "github.com/mitchellh/mapstructure",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/pborman/uuid",
+    "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
@@ -1609,6 +1589,7 @@
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/net",
+    "k8s.io/apimachinery/pkg/util/rand",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/sets",
     "k8s.io/apimachinery/pkg/util/uuid",
@@ -1617,6 +1598,7 @@
     "k8s.io/apiserver/pkg/authorization/authorizer",
     "k8s.io/apiserver/pkg/server/healthz",
     "k8s.io/apiserver/pkg/storage/value/encrypt/envelope/v1beta1",
+    "k8s.io/apiserver/pkg/util/feature",
     "k8s.io/apiserver/pkg/util/flag",
     "k8s.io/apiserver/pkg/util/logs",
     "k8s.io/client-go/informers",
@@ -1632,44 +1614,26 @@
     "k8s.io/client-go/tools/record",
     "k8s.io/client-go/util/cert",
     "k8s.io/client-go/util/retry",
+    "k8s.io/client-go/util/testing",
     "k8s.io/client-go/util/workqueue",
-    "k8s.io/cloud-provider-openstack/pkg/cloudprovider/providers/openstack",
-    "k8s.io/cloud-provider-openstack/pkg/csi/cinder",
-    "k8s.io/cloud-provider-openstack/pkg/csi/cinder/mount",
-    "k8s.io/cloud-provider-openstack/pkg/csi/cinder/openstack",
-    "k8s.io/cloud-provider-openstack/pkg/flexvolume",
-    "k8s.io/cloud-provider-openstack/pkg/flexvolume/cinder/drivers",
-    "k8s.io/cloud-provider-openstack/pkg/flexvolume/knownflags",
-    "k8s.io/cloud-provider-openstack/pkg/flexvolume/metadata",
-    "k8s.io/cloud-provider-openstack/pkg/flexvolume/node",
-    "k8s.io/cloud-provider-openstack/pkg/flexvolume/uuid",
-    "k8s.io/cloud-provider-openstack/pkg/identity/keystone",
-    "k8s.io/cloud-provider-openstack/pkg/ingress/cmd",
-    "k8s.io/cloud-provider-openstack/pkg/ingress/config",
-    "k8s.io/cloud-provider-openstack/pkg/ingress/controller",
-    "k8s.io/cloud-provider-openstack/pkg/ingress/controller/openstack",
-    "k8s.io/cloud-provider-openstack/pkg/kms/barbican",
-    "k8s.io/cloud-provider-openstack/pkg/kms/encryption/aescbc",
-    "k8s.io/cloud-provider-openstack/pkg/kms/server",
-    "k8s.io/cloud-provider-openstack/pkg/share/manila",
-    "k8s.io/cloud-provider-openstack/pkg/share/manila/sharebackends",
-    "k8s.io/cloud-provider-openstack/pkg/share/manila/shareoptions",
-    "k8s.io/cloud-provider-openstack/pkg/util/file",
-    "k8s.io/cloud-provider-openstack/pkg/util/io",
-    "k8s.io/cloud-provider-openstack/pkg/util/net/sets",
-    "k8s.io/cloud-provider-openstack/pkg/volume/cinder/provisioner",
-    "k8s.io/cloud-provider-openstack/pkg/volume/cinder/volumeservice",
+    "k8s.io/cloud-provider",
     "k8s.io/klog",
     "k8s.io/kubernetes/cmd/cloud-controller-manager/app",
     "k8s.io/kubernetes/cmd/cloud-controller-manager/app/options",
     "k8s.io/kubernetes/pkg/client/metrics/prometheus",
     "k8s.io/kubernetes/pkg/controller/volume/persistentvolume",
     "k8s.io/kubernetes/pkg/features",
+    "k8s.io/kubernetes/pkg/kubelet/apis",
     "k8s.io/kubernetes/pkg/util/flag",
+    "k8s.io/kubernetes/pkg/util/keymutex",
     "k8s.io/kubernetes/pkg/util/mount",
+    "k8s.io/kubernetes/pkg/util/strings",
     "k8s.io/kubernetes/pkg/version/prometheus",
     "k8s.io/kubernetes/pkg/version/verflag",
+    "k8s.io/kubernetes/pkg/volume",
+    "k8s.io/kubernetes/pkg/volume/testing",
     "k8s.io/kubernetes/pkg/volume/util",
+    "k8s.io/kubernetes/pkg/volume/util/volumepathhandler",
     "k8s.io/utils/exec",
   ]
   solver-name = "gps-cdcl"

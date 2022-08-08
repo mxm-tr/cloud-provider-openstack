@@ -24,17 +24,20 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume/util"
 	utilexec "k8s.io/utils/exec"
-
-	"k8s.io/klog"
 )
 
 const (
-	probeVolumeDuration = 1 * time.Second
-	probeVolumeTimeout  = 60 * time.Second
-	instanceIDFile      = "/var/lib/cloud/data/instance-id"
+	probeVolumeDuration      = 1 * time.Second
+	probeVolumeTimeout       = 60 * time.Second
+	operationFinishInitDelay = 1 * time.Second
+	operationFinishFactor    = 1.1
+	operationFinishSteps     = 15
+	instanceIDFile           = "/var/lib/cloud/data/instance-id"
 )
 
 type IMount interface {
@@ -154,7 +157,7 @@ func (m *Mount) ScanForAttach(devicePath string) error {
 			klog.V(5).Infof("Checking Cinder disk %q is attached.", devicePath)
 			probeVolume()
 
-			exists, err := mount.PathExists(devicePath)
+			exists, err := util.PathExists(devicePath)
 			if exists && err == nil {
 				return nil
 			} else {

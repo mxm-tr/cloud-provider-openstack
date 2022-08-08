@@ -12,8 +12,25 @@ const (
 	metadataURLTemplate    = "http://169.254.169.254/openstack/%s/meta_data.json"
 )
 
+// IMetadata implements GetInstanceID
+type IMetadata interface {
+	GetInstanceID() (string, error)
+}
+
 type metadata struct {
 	UUID string
+}
+
+// MetadataService instance of IMetadata
+var MetadataService IMetadata
+
+// GetMetadataProvider retrieves instance of IMetadata
+func GetMetadataProvider() (IMetadata, error) {
+
+	if MetadataService == nil {
+		MetadataService = &metadata{}
+	}
+	return MetadataService, nil
 }
 
 func getMetadata(metadataURL string) ([]byte, error) {
@@ -33,18 +50,25 @@ func getMetadata(metadataURL string) ([]byte, error) {
 	return md, nil
 }
 
-// GetInstanceID from metadata service
-func GetInstanceID() (string, error) {
+func getMetaDataInfo() (metadata, error) {
 	metadataURL := fmt.Sprintf(metadataURLTemplate, defaultMetadataVersion)
+	var m metadata
 	md, err := getMetadata(metadataURL)
 	if err != nil {
-		return "", err
+		return m, err
 	}
-	var m metadata
 	err = json.Unmarshal(md, &m)
+	if err != nil {
+		return m, err
+	}
+	return m, nil
+}
+
+// GetInstanceID from metadata service
+func (m *metadata) GetInstanceID() (string, error) {
+	md, err := getMetaDataInfo()
 	if err != nil {
 		return "", err
 	}
-
-	return m.UUID, nil
+	return md.UUID, nil
 }

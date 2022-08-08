@@ -26,10 +26,13 @@ import (
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"k8s.io/cloud-provider-openstack/pkg/csi/cinder/mount"
 	"k8s.io/cloud-provider-openstack/pkg/csi/cinder/openstack"
+	"k8s.io/cloud-provider-openstack/pkg/util/metadata"
 )
 
 type nodeServer struct {
 	*csicommon.DefaultNodeServer
+	Mount    mount.IMount
+	Metadata openstack.IMetadata
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
@@ -37,6 +40,8 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	targetPath := req.GetTargetPath()
 	fsType := req.GetVolumeCapability().GetMount().GetFsType()
 	volumeID := req.GetVolumeId()
+
+	klog.V(3).Infof("MH VolumeID: %v", volumeID)
 
 	// Do not trust the path provided by cinder, get the real path on node
 	devicePath, err := ns.getDevicePath(volumeID)
@@ -174,7 +179,7 @@ func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
 
-	nodeID, err := getNodeID()
+	nodeID, err := getNodeID(ns.Mount, ns.Metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +196,7 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 
 func (ns *nodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 
-	nodeID, err := getNodeID()
+	nodeID, err := getNodeID(ns.Mount, ns.Metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -224,6 +229,7 @@ func (ns *nodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 
 func (ns *nodeServer) getDevicePath(volumeID string) (string, error) {
 	var devicePath string
+	klog.V(3).Infof("MH Getting path for volume: %s", volumeID)
 	devicePath, _ = ns.Mount.GetDevicePath(volumeID)
 	if devicePath == "" {
 		// try to get from metadata service
@@ -234,7 +240,7 @@ func (ns *nodeServer) getDevicePath(volumeID string) (string, error) {
 
 }
 
-func getNodeIDMountProvider() (string, error) {
+func getNodeIDMountProvider(m mount.IMount) (string, error) {
 
 	// Get Mount Provider
 	m, err := mount.GetMountProvider()
@@ -252,24 +258,24 @@ func getNodeIDMountProvider() (string, error) {
 	return nodeID, nil
 }
 
-func getNodeIDMetdataService() (string, error) {
-	nodeID, err := openstack.GetInstanceID()
+func getNodeIDMetdataService(m openstack.IMetadata) (string, error) {
+	nodeID, err := m.GetInstanceID()
 	if err != nil {
 		return "", err
 	}
 	return nodeID, nil
 }
 
-func getNodeID() (string, error) {
+func getNodeID(mount mount.IMount, metadata openstack.IMetadata) (string, error) {
 	// First try to get instance id from mount provider
-	nodeID, err := getNodeIDMountProvider()
+	nodeID, err := getNodeIDMountProvider(mount)
 	if err == nil || nodeID != "" {
 		return nodeID, nil
 	}
 
 	klog.V(3).Infof("Failed to GetInstanceID from mount data: %v", err)
 	klog.V(3).Info("Trying to GetInstanceID from metadata service")
-	nodeID, err = getNodeIDMetdataService()
+	nodeID, err = getNodeIDMetdataService(metadata)
 	if err != nil {
 		klog.V(3).Infof("Failed to GetInstanceID from metadata service: %v", err)
 		return "", err
