@@ -21,6 +21,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/kubernetes-csi/drivers/pkg/csi-common"
+	"k8s.io/cloud-provider-openstack/pkg/csi/cinder/mount"
 	"k8s.io/cloud-provider-openstack/pkg/csi/cinder/openstack"
 )
 
@@ -75,13 +76,20 @@ func NewControllerServer(d *driver) *controllerServer {
 	}
 }
 
-func NewNodeServer(d *driver) *nodeServer {
+func NewNodeServer(d *driver, mount mount.IMount, metadata openstack.IMetadata) *nodeServer {
 	return &nodeServer{
-		DefaultNodeServer: csicommon.NewDefaultNodeServer(d.csiDriver),
+		Mount:    mount,
+		Metadata: metadata,
 	}
+}
+
+func (d *driver) SetupDriver(cloud openstack.IOpenStack, mount mount.IMount, metadata openstack.IMetadata) {
+
+	d.ns = NewNodeServer(d, mount, metadata)
+
 }
 
 func (d *driver) Run() {
 	openstack.InitOpenStackProvider(d.cloudconfig)
-	csicommon.RunControllerandNodePublishServer(d.endpoint, d.csiDriver, NewControllerServer(d), NewNodeServer(d))
+	csicommon.RunControllerandNodePublishServer(d.endpoint, d.csiDriver, NewControllerServer(d), d.ns)
 }
