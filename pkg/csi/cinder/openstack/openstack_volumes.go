@@ -23,6 +23,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"k8s.io/apimachinery/pkg/util/wait"
+	cpoerrors "k8s.io/cloud-provider-openstack/pkg/util/errors"
 
 	"k8s.io/klog"
 )
@@ -41,6 +42,7 @@ const (
 	diskDetachInitDelay      = 1 * time.Second
 	diskDetachFactor         = 1.2
 	diskDetachSteps          = 13
+	volumeDescription        = "Created by OpenStack Cinder CSI driver"
 )
 
 type Volume struct {
@@ -67,6 +69,7 @@ func (os *OpenStack) CreateVolume(name string, size int, vtype, availability str
 		Size:             size,
 		VolumeType:       vtype,
 		AvailabilityZone: availability,
+		Description:      volumeDescription,
 	}
 	if tags != nil {
 		opts.Metadata = *tags
@@ -207,7 +210,9 @@ func (os *OpenStack) WaitDiskAttached(instanceID string, volumeID string) error 
 
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		attached, err := os.diskIsAttached(instanceID, volumeID)
-		if err != nil {
+		if err != nil && !cpoerrors.IsNotFound(err) {
+			// if this is a race condition indicate the volume is deleted
+			// during sleep phase, ignore the error and return attach=false
 			return false, err
 		}
 		return attached, nil
